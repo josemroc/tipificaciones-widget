@@ -63,7 +63,7 @@
             fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vTci38bwfWaxIT8eNXjos86CeTqAavmbF6nUWu6X_lkg9fAIKu4KFeHU0ftBimfaT8zc6Slcx9eur4U/pub?gid=1398263958&single=true&output=csv')
                 .then(response => response.text())
                 .then(data => {
-                    const lines = data.split('\\n').slice(1); // Omitir header
+                    const lines = data.split('\n').slice(1); // Omitir header
                     const tipList = document.getElementById('tipList');
                     tipList.innerHTML = '';
                     
