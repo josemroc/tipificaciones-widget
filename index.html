@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Widget Tipificaciones</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        .btn { background: #4285f4; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .btn:hover { background: #3367d6; }
+    </style>
+</head>
+<body>
+    <h1>Test Widget Tipificaciones</h1>
+    <button onclick="cargarWidget()" class="btn">🔰 Cargar Tipificaciones</button>
+    <button onclick="crearBookmarklet()" class="btn" style="background: #34a853; margin-left: 10px;">📝 Crear Bookmarklet</button>
+
+    <script>
+        function cargarWidget() {
+            // Remover widget existente si existe
+            if(document.getElementById('tipWidget')) {
+                document.getElementById('tipWidget').remove();
+                return;
+            }
+
+            // Crear widget
+            const widget = document.createElement('div');
+            widget.id = 'tipWidget';
+            widget.innerHTML = `
+                <div style="position:fixed;top:150px;right:30px;width:320px;background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:1px solid #e0e0e0;z-index:999999;font-family:Arial,sans-serif;animation:slideIn 0.3s ease-out;">
+                    <style>
+                        @keyframes slideIn{from{opacity:0;transform:translateY(-20px) scale(0.9);}to{opacity:1;transform:translateY(0) scale(1);}}
+                        .tip-item{padding:10px 12px;border-radius:6px;margin:2px 4px;cursor:pointer;transition:all 0.2s;border:1px solid transparent;}
+                        .tip-item:hover{background:#f8f9fa;border-color:#e8eaed;transform:translateX(2px);}
+                        .tip-item:active{transform:scale(0.98);}
+                    </style>
+                    <div style="background:linear-gradient(135deg,#4285f4,#34a853);color:white;padding:12px 15px;border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:space-between;">
+                        <div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2L2 7v10c0 5.55 3.84 9.95 9 11 5.16-1.05 9-5.45 9-11V7l-10-5z"/></svg>
+                            <span>Tipificaciones</span>
+                        </div>
+                        <button onclick="document.getElementById('tipWidget').remove()" style="background:none;border:none;color:white;cursor:pointer;font-size:16px;padding:0;width:20px;height:20px;border-radius:50%;transition:background 0.2s;">×</button>
+                    </div>
+                    <div style="padding:12px;border-bottom:1px solid #f0f0f0;">
+                        <input id="tipSearch" type="text" placeholder="Buscar tipificación..." style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:20px;font-size:13px;outline:none;transition:border-color 0.2s;" onkeyup="filterTips(this.value)">
+                    </div>
+                    <div id="tipList" style="max-height:350px;overflow-y:auto;padding:8px;">
+                        <div style="text-align:center;padding:20px;color:#666;">🔄 Cargando tipificaciones...</div>
+                    </div>
+                    <div style="padding:8px 12px;background:#f8f9fa;border-radius:0 0 12px 12px;text-align:center;font-size:11px;color:#666;">
+                        <span style="display:inline-flex;align-items:center;gap:4px;">
+                            <span style="width:6px;height:6px;background:#34a853;border-radius:50%;animation:blink 2s infinite;"></span>
+                            Sincronizado con Google Sheets
+                        </span>
+                    </div>
+                </div>
+                <style>
+                    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+                </style>
+            `;
+            
+            document.body.appendChild(widget);
+            
+            // Cargar datos del CSV
+            fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vTci38bwfWaxIT8eNXjos86CeTqAavmbF6nUWu6X_lkg9fAIKu4KFeHU0ftBimfaT8zc6Slcx9eur4U/pub?gid=1398263958&single=true&output=csv')
+                .then(response => response.text())
+                .then(data => {
+                    const lines = data.split('\\n').slice(1); // Omitir header
+                    const tipList = document.getElementById('tipList');
+                    tipList.innerHTML = '';
+                    
+                    window.allTips = [];
+                    
+                    lines.forEach(line => {
+                        if(line.trim()) {
+                            const cols = line.split(',').map(col => col.replace(/"/g, '').trim());
+                            if(cols.length >= 5) {
+                                const tip = {
+                                    trigger: cols[0],
+                                    titulo: cols[1],
+                                    tipificacion: cols[2],
+                                    descripcion: cols[3],
+                                    palabras: cols[4]
+                                };
+                                
+                                window.allTips.push(tip);
+                                
+                                const item = document.createElement('div');
+                                item.className = 'tip-item';
+                                item.innerHTML = `
+                                    <div style="font-weight:600;color:#1a73e8;font-size:12px;">${tip.trigger}</div>
+                                    <div style="font-weight:500;color:#333;font-size:13px;margin:2px 0;">${tip.titulo}</div>
+                                    <div style="font-size:11px;color:#666;font-style:italic;">${tip.tipificacion}</div>
+                                `;
+                                
+                                item.onclick = () => {
+                                    // Copiar al portapapeles
+                                    if(navigator.clipboard) {
+                                        navigator.clipboard.writeText(tip.trigger);
+                                    }
+                                    
+                                    // Efecto visual
+                                    item.style.background = '#e8f5e8';
+                                    item.style.borderColor = '#34a853';
+                                    
+                                    // Notificación
+                                    const notification = document.createElement('div');
+                                    notification.style.cssText = 'position:fixed;top:20px;right:20px;background:#4caf50;color:white;padding:12px 20px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:1000000;font-size:14px;animation:slideIn 0.3s ease-out;';
+                                    notification.textContent = `✅ ${tip.trigger} copiado al portapapeles`;
+                                    document.body.appendChild(notification);
+                                    
+                                    setTimeout(() => {
+                                        item.style.background = '';
+                                        item.style.borderColor = 'transparent';
+                                        notification.remove();
+                                    }, 2000);
+                                };
+                                
+                                tipList.appendChild(item);
+                            }
+                        }
+                    });
+                    
+                    // Enfocar buscador
+                    setTimeout(() => {
+                        document.getElementById('tipSearch')?.focus();
+                    }, 200);
+                })
+                .catch(error => {
+                    document.getElementById('tipList').innerHTML = '<div style="text-align:center;padding:20px;color:#f44336;">❌ Error al cargar tipificaciones</div>';
+                });
+        }
+
+        function filterTips(searchTerm) {
+            if(!window.allTips) return;
+            
+            const items = document.querySelectorAll('.tip-item');
+            searchTerm = searchTerm.toLowerCase();
+            
+            items.forEach((item, index) => {
+                const tip = window.allTips[index];
+                if(tip) {
+                    const searchText = (tip.trigger + ' ' + tip.titulo + ' ' + tip.tipificacion + ' ' + tip.palabras).toLowerCase();
+                    item.style.display = searchText.includes(searchTerm) ? 'block' : 'none';
+                }
+            });
+        }
+
+        function crearBookmarklet() {
+            const codigo = `javascript:(function(){if(document.getElementById('tipWidget')){document.getElementById('tipWidget').remove();return;}const widget=document.createElement('div');widget.id='tipWidget';widget.innerHTML='<div style="position:fixed;top:150px;right:30px;width:320px;background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:1px solid #e0e0e0;z-index:999999;font-family:Arial,sans-serif;animation:slideIn 0.3s ease-out;"><style>@keyframes slideIn{from{opacity:0;transform:translateY(-20px) scale(0.9);}to{opacity:1;transform:translateY(0) scale(1);}}.tip-item{padding:10px 12px;border-radius:6px;margin:2px 4px;cursor:pointer;transition:all 0.2s;border:1px solid transparent;}.tip-item:hover{background:#f8f9fa;border-color:#e8eaed;transform:translateX(2px);}</style><div style="background:linear-gradient(135deg,#4285f4,#34a853);color:white;padding:12px 15px;border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:space-between;"><div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2L2 7v10c0 5.55 3.84 9.95 9 11 5.16-1.05 9-5.45 9-11V7l-10-5z"/></svg><span>Tipificaciones</span></div><button onclick="document.getElementById(\\'tipWidget\\').remove()" style="background:none;border:none;color:white;cursor:pointer;font-size:16px;padding:0;width:20px;height:20px;border-radius:50%;">×</button></div><div style="padding:12px;border-bottom:1px solid #f0f0f0;"><input id="tipSearch" type="text" placeholder="Buscar..." style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:20px;font-size:13px;outline:none;" onkeyup="filterTips(this.value)"></div><div id="tipList" style="max-height:350px;overflow-y:auto;padding:8px;"><div style="text-align:center;padding:20px;color:#666;">Cargando...</div></div><div style="padding:8px 12px;background:#f8f9fa;border-radius:0 0 12px 12px;text-align:center;font-size:11px;color:#666;"><span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:6px;height:6px;background:#34a853;border-radius:50%;"></span>Sincronizado</span></div></div>';document.body.appendChild(widget);fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vTci38bwfWaxIT8eNXjos86CeTqAavmbF6nUWu6X_lkg9fAIKu4KFeHU0ftBimfaT8zc6Slcx9eur4U/pub?gid=1398263958&single=true&output=csv').then(r=>r.text()).then(data=>{const lines=data.split('\\n').slice(1);const tipList=document.getElementById('tipList');tipList.innerHTML='';window.allTips=[];lines.forEach(line=>{if(line.trim()){const cols=line.split(',').map(c=>c.replace(/"/g,'').trim());if(cols.length>=5){const tip={trigger:cols[0],titulo:cols[1],tipificacion:cols[2],descripcion:cols[3],palabras:cols[4]};window.allTips.push(tip);const item=document.createElement('div');item.className='tip-item';item.innerHTML='<div style="font-weight:600;color:#1a73e8;font-size:12px;">'+tip.trigger+'</div><div style="font-weight:500;color:#333;font-size:13px;margin:2px 0;">'+tip.titulo+'</div><div style="font-size:11px;color:#666;font-style:italic;">'+tip.tipificacion+'</div>';item.onclick=()=>{navigator.clipboard?.writeText(tip.trigger);item.style.background='#e8f5e8';item.style.borderColor='#34a853';const notification=document.createElement('div');notification.style.cssText='position:fixed;top:20px;right:20px;background:#4caf50;color:white;padding:12px 20px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:1000000;font-size:14px;';notification.textContent='✅ '+tip.trigger+' copiado';document.body.appendChild(notification);setTimeout(()=>{item.style.background='';item.style.borderColor='transparent';notification.remove();},2000);};tipList.appendChild(item);}}});setTimeout(()=>document.getElementById('tipSearch')?.focus(),200);});window.filterTips=function(term){if(!window.allTips)return;const items=document.querySelectorAll('.tip-item');items.forEach((item,index)=>{const tip=window.allTips[index];if(tip){const searchText=(tip.trigger+' '+tip.titulo+' '+tip.tipificacion+' '+tip.palabras).toLowerCase();item.style.display=searchText.includes(term.toLowerCase())?'block':'none';}});};})();`;
+            
+            // Crear ventana con instrucciones
+            const instrucciones = window.open('', '_blank', 'width=600,height=400');
+            instrucciones.document.write(`
+                <html>
+                <head><title>Crear Bookmarklet</title></head>
+                <body style="font-family: Arial; padding: 20px; line-height: 1.6;">
+                    <h2>🔰 Instrucciones para crear el Bookmarklet</h2>
+                    <ol>
+                        <li><strong>Copia este código:</strong></li>
+                        <textarea style="width: 100%; height: 100px; font-size: 10px; margin: 10px 0;">${codigo}</textarea>
+                        <li><strong>En Chrome:</strong> Presiona Ctrl+Shift+O</li>
+                        <li><strong>Clic derecho</strong> en la barra de marcadores → "Agregar página"</li>
+                        <li><strong>Nombre:</strong> 🔰 Tipificaciones</li>
+                        <li><strong>URL:</strong> Pega el código copiado</li>
+                        <li><strong>Guardar</strong></li>
+                    </ol>
+                    <p><strong>¡Listo!</strong> Ahora puedes usar el marcador en Salesforce.</p>
+                </body>
+                </html>
+            `);
+        }
+    </script>
+</body>
+</html>
